@@ -5,11 +5,15 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 import re
 from admin_dashboard.models import User
-from django.core.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError
 from datetime import timedelta
 from datetime import datetime
-# Forgot Password Serializer
-def validate_student_data(data,instance=None):
+from datetime import datetime
+
+from .models import Student  # Replace with the correct import for your Student model
+
+
+def validate_student_data(data, instance=None):
     phone_number = data.get('guardian_phone_number')
     emergency_contact = data.get('emergency_contact')
 
@@ -18,7 +22,7 @@ def validate_student_data(data,instance=None):
         emergency_contact = str(emergency_contact) if emergency_contact else ''
 
     if phone_number and (not phone_number.isdigit() or len(phone_number) not in [10, 12]):
-        raise ValidationError({'phone_number': 'Invalid phone number. Must be 10 or 12 digits.'})
+        raise ValidationError({'guardian_phone_number': 'Invalid phone number. Must be 10 or 12 digits.'})
 
     if emergency_contact and (not emergency_contact.isdigit() or len(emergency_contact) not in [10, 12]):
         raise ValidationError({'emergency_contact': 'Invalid emergency contact number. Must be 10 or 12 digits.'})
@@ -45,7 +49,7 @@ def validate_student_data(data,instance=None):
     academic_performance = data.get("academic_performance")
 
     if not attendance_record and academic_performance:
-        raise ValidationError("If attendance record is not provided, academic performance cannot be updated.")
+        raise ValidationError({'attendance_record': "If attendance record is not provided, academic performance cannot be updated."})
 
     section = data.get("section")
     roll_number = data.get("roll_number")
@@ -54,10 +58,10 @@ def validate_student_data(data,instance=None):
 
     if section:
         if Student.objects.filter(section=section, roll_number=roll_number).exclude(student_id=student_id).exists():
-            raise ValidationError(f"Roll number {roll_number} already exists in section {section}.")
+            raise ValidationError({'roll_number': f"Roll number {roll_number} already exists in section {section}."})
     else:
         if Student.objects.filter(student_class=student_class, roll_number=roll_number).exclude(student_id=student_id).exists():
-            raise ValidationError(f"Roll number {roll_number} already exists in class {student_class}.")
+            raise ValidationError({'roll_number': f"Roll number {roll_number} already exists in class {student_class}."})
 
     if admission_date:
         try:
@@ -72,15 +76,12 @@ def validate_student_data(data,instance=None):
             raise ValidationError({'attendance_record': 'Attendance record cannot be added if date of joining is today.'})
 
         if academic_performance and academic_performance.strip() != "":
-            raise ValidationError("Academic performance cannot be updated on the day of admission.")
-    return data
+            raise ValidationError({'academic_performance': "Academic performance cannot be updated on the day of admission."})
+
 class PasswordForgotSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
     def validate_email(self, value):
-        """
-        Validate that the email is registered with a service provider.
-        """
         if not User.objects.filter(email=value).exists():
             raise serializers.ValidationError("This email is not registered with any service provider.")
         return value
@@ -92,13 +93,7 @@ class SetNewPasswordSerializer(serializers.Serializer):
     confirm_password = serializers.CharField(required=True, write_only=True)
     
     def validate_new_password(self, value):
-        """
-        Use Django's password validators and custom rules for password complexity.
-        """
-        # Validate using Django's built-in validators
         validate_password(value)
-
-        # Custom validation for password complexity
         if not re.search(r'[A-Z]', value):
             raise serializers.ValidationError("Password must contain at least one uppercase letter.")
         if not re.search(r'[a-z]', value):
@@ -110,9 +105,6 @@ class SetNewPasswordSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        """
-        Ensure that the new password and confirm password match.
-        """
         if attrs['new_password'] != attrs['confirm_password']:
             raise serializers.ValidationError("Passwords do not match")
         return attrs

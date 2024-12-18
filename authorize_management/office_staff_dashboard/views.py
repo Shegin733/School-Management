@@ -61,18 +61,54 @@ class FeesHistoryViewSet(viewsets.ViewSet):
     def update(self, request, student_id=None, pk=None):
         student = get_object_or_404(Student, student_id=student_id)
         fees_history = get_object_or_404(FeesHistory, pk=pk, student=student)
-
+       
         try:
-            validated_data = validate_fee_data(request.data)
+            validated_data = validate_fee_data(request.data, instance=fees_history)
         except ValidationError as e:
             error_details = {
                 "message": "Validation error occurred.",
                 "errors": e.message_dict if hasattr(e, "message_dict") else str(e)
             }
             return Response(error_details, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validated_data = validate_fee_data(request.data, instance=fees_history)
+        except ValidationError as e:
+            error_details = {
+                "message": "Validation error occurred.",
+                "errors": e.message_dict if hasattr(e, "message_dict") else str(e)
+            }
+            return Response(error_details, status=status.HTTP_400_BAD_REQUEST)
+        if validated_data is None:
+            return Response({"message": "Invalid data received."}, status=status.HTTP_400_BAD_REQUEST)
+        if "total_paid" not in validated_data:
+            validated_data["total_paid"] = fees_history.total_paid
+        previous_total_paid = fees_history.total_paid
+        previous_amount_due = fees_history.amount_due
+        total_paid = validated_data.get("total_paid", previous_total_paid)
+        updated_total_paid = previous_total_paid + total_paid if total_paid else previous_total_paid
+        payment_amount = validated_data.get("payment_amount", fees_history.payment_amount)
+        if payment_amount:
+            updated_amount_due = payment_amount - updated_total_paid
+            if updated_amount_due < 0:
+                updated_amount_due = 0  # Avoid negative amounts
+            if updated_amount_due == 0 and updated_total_paid > 0:
+                validated_data["status"] = "Paid"
+            else:
+                validated_data["amount_due"] = updated_amount_due
 
+        if updated_total_paid > 0 and updated_amount_due > 0:
+            validated_data["status"] = "Partially Paid"
+        elif updated_total_paid == 0:
+            validated_data["status"] = "Pending"
+        elif updated_amount_due == 0:
+            validated_data["status"] = "Paid"
+            # Step 2: Check for total_paid in the validated_data
+        if "total_paid" not in validated_data:
+            validated_data["total_paid"] = fees_history.total_paid
+            return Response({"message": "'total_paid' is required in the data."}, status=status.HTTP_400_BAD_REQUEST)
+
+        
         serializer = FeesHistorySerializer(fees_history, data=validated_data, partial=True)
-
         if serializer.is_valid():
             for field, value in validated_data.items():
                 if value is None:
@@ -86,7 +122,6 @@ class FeesHistoryViewSet(viewsets.ViewSet):
                     updated_amount_due = 0
 
                 validated_data["amount_due"] = updated_amount_due
-
             serializer = FeesHistorySerializer(fees_history, data=validated_data, partial=True)
             if serializer.is_valid():
                 serializer.save()
@@ -94,7 +129,7 @@ class FeesHistoryViewSet(viewsets.ViewSet):
 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
 
     def destroy(self, request, student_id=None, pk=None):
         confirm = request.query_params.get('confirm', None)
@@ -112,11 +147,8 @@ class FeesHistoryViewSet(viewsets.ViewSet):
 
         if fees_history.status == 'Paid':
             return Response({"message": "This record has already been marked as paid."}, status=status.HTTP_400_BAD_REQUEST)
-
         form = FeesHistoryForm(request.data, instance=fees_history, partial=True)
-
         update_data = request.data
-
         for field in fees_history._meta.fields:
             field_name = field.name
             if field_name not in update_data:

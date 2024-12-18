@@ -75,7 +75,7 @@ class LibraryHistoryViewSet(viewsets.ViewSet):
         
         book_id = request.data.get('book_id')
         borrowed_date = request.data.get('borrowed_date')
-
+        print("Incoming data",request.data)
         try:
             validate_library_data(request.data)
         except ValidationError as e:
@@ -83,6 +83,7 @@ class LibraryHistoryViewSet(viewsets.ViewSet):
                 "message": "Validation error occurred.",
                 "errors": e.message_dict if hasattr(e, "message_dict") else str(e)
             }
+            print("recieved data",error_details)
             return Response(error_details, status=status.HTTP_400_BAD_REQUEST)
         
         existing_history = LibraryHistory.objects.filter(student=student, book_id=book_id, borrowed_date=borrowed_date).exists()

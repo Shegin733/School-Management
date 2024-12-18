@@ -129,9 +129,6 @@ class Librarian(models.Model):
     contract_details = models.TextField(blank=True)
     promotion_hike = models.CharField(max_length=50,blank=True, null=True)  # Promotion details
     job_responsibilities = models.TextField(blank=True)
-    
-    
-   
 
     # Emergency and Personal Information
     emergency_contact = models.CharField(max_length=15, blank=True)

@@ -134,54 +134,86 @@ class ResetPasswordView(generics.GenericAPIView):
 # Student ViewSet
 class StudentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    queryset = Student.objects.all()
     serializer_class = StudentSerializer
-
+    queryset=Student.objects.all()
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
-            self.permission_classes = [IsAuthenticated, IsAdmin |  IsOfficeStaff | IsLibrarian]
+            self.permission_classes = [IsAuthenticated, IsAdmin | IsOfficeStaff | IsLibrarian]
         elif self.action in ['create', 'update', 'partial_update', 'destroy']:
             self.permission_classes = [IsAuthenticated, IsAdmin | IsOfficeStaff]
-        return super().get_permissions()
+        return [permission() for permission in self.permission_classes]
+
+    def list(self, request, *args, **kwargs):
+        # Retrieve all student objects
+        students = Student.objects.all()
+        serializer = StudentSerializer(students, many=True)
+        return Response({'students': serializer.data}, status=status.HTTP_200_OK)
+
+    def retrieve(self, request, *args, **kwargs):
+        student = self.get_object()
+        serializer = StudentSerializer(student)
+        return Response({'student': serializer.data}, status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+        required_fields = [
+            'full_name', 'date_of_birth', 'gender', 'address',
+            'student_class', 'roll_number', 'guardian_phone_number',
+            'guardian_name', 'email', 'admission_number', 'admission_date'
+        ]
+        request.data
+
+        # Validate data using custom function
+        print("Incoming profile_data:", request.data)
+
+        try:
+            validate_student_data(request.data)  # Validate data using custom function
+            
+        except ValidationError as e:
+            # Handle the exception and format the error message properly
+            error_details = {
+                "message": "Validation error occurred.",
+                "errors": str(e.detail)  # e.detail holds the error message details
+            }
+            return Response(error_details, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check for missing fields
+        missing_fields = [field for field in required_fields if field not in request.data or not request.data[field]]
+        if missing_fields:
+            return Response({'message': 'Missing required fields.', 'missing_fields': missing_fields}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Serialize and save the data
+        serializer = StudentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Student created successfully.', 'student': serializer.data}, status=status.HTTP_201_CREATED)
+        
+        return Response({'message': 'Invalid data.', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
+        # Retrieve the student instance
         student = self.get_object()
-        serializer = StudentSerializer(student, data=request.data, partial=True)
+        
+        # Merge current object data with the request data
         updated_data = student.__dict__.copy()
         updated_data.update(request.data)
 
+        # Exclude unnecessary fields
         fields_to_update = {key: value for key, value in updated_data.items() if key not in ['_state', 'id']}
+
+        # Validate the updated data
         try:
             validate_student_data(fields_to_update)
         except ValidationError as e:
-            return Response({'message': str(e)}, status=400)
+            return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Serialize and save the updated data
+        serializer = StudentSerializer(student, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({'message': 'Student updated successfully.', 'student': serializer.data}, status=status.HTTP_200_OK)
-
+        
         return Response({'message': 'Invalid data.', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
-    def create(self, request, *args, **kwargs):
-        required_fields = ['full_name', 'date_of_birth', 'gender', 'address', 'student_class', 'roll_number', 'guardian_phone_number', 'guardian_name', 'email', 'admission_number', 'admission_date']
-        profile_data=request.data
-        try:
-            # Perform validation using your custom validation function
-            validate_student_data(profile_data)
-        except ValidationError as e:
-            # Return a custom error response if validation fails
-            return Response({'message': 'Validation error', 'errors': e.message_dict}, status=400)
-
-        
-        # Check if any required fields are missing
-        missing_fields = [field for field in required_fields if field not in profile_data or not profile_data[field]]
-        if missing_fields:
-            return Response({'message': 'Missing required fields.', 'missing_fields': missing_fields}, status=400)
-        
-        # Call the super class's create method if validation passes
-        return super().create(request, *args, **kwargs)
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
 
     def get(self, request):
         try:
