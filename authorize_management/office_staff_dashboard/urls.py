@@ -16,10 +16,8 @@ urlpatterns = [
     path('student/update/<int:pk>/', StudentViewSet.as_view({'put': 'update'}), name='student-update'),  # Custom URL for update
     path('student/delete/<int:pk>/', StudentViewSet.as_view({'delete': 'destroy'}), name='student-delete'),  # Custom URL for delete
     path('students/retrieveall/', StudentViewSet.as_view({'get': 'list'}), name='retrieve-all-students'), 
-    path('student/<int:student_id>/library-create/', LibraryHistoryViewSet.as_view({'post': 'create'}), name='libraryhistory-create'),
     path('student/<int:student_id>/libraryhistory-view/', LibraryHistoryViewSet.as_view({'get': 'retrieve_by_student'})),
     path('student/<int:student_id>/libraryhistory-view/<int:history_id>/', LibraryHistoryViewSet.as_view({'get': 'retrieve_by_history_and_student'})),
-
     path('student/libraryhistory-view-history/', LibraryHistoryViewSet.as_view({'get': 'view_history'}), name='libraryhistory-view-history'), # Custom action to view all library history records
     path('student/<int:student_id>/feehistory-create/', FeesHistoryViewSet.as_view({'post': 'create'}), name='feeshistory-create'),
     path('student/<int:student_id>/feehistory-view/', FeesHistoryViewSet.as_view({'get': 'retrieve_by_student'})),
