@@ -14,7 +14,6 @@ urlpatterns = [
     path('student/retrieve/<int:pk>/', StudentViewSet.as_view({'get': 'retrieve'}), name='student-retrieve'),  # Custom URL for retrieve
     path('students/retrieveall/', StudentViewSet.as_view({'get': 'list'}), name='retrieve-all-students'),
     # Library History URLs
-    path('student/<int:student_id>/libraryhistory-update-status/<int:pk>/', LibraryHistoryViewSet.as_view({'patch': 'update_status'}), name='libraryhistory-update-status'), # Custom action for updating the status of a library history record
     path('student/libraryhistory-view-history/', LibraryHistoryViewSet.as_view({'get': 'view_history'}), name='libraryhistory-view-history'), # Custom action to view all library history records
     path('update-user/<int:pk>/', UserViewSet.as_view({'put': 'update_user'}), name='update-user'),#can update librarian's own profile
    
