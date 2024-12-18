@@ -26,13 +26,13 @@ class LibraryHistoryViewSet(viewsets.ViewSet):
         if self.action == 'list':
             # For listing library histories, allow access to admins, librarians, and staff
             permission_classes = [IsAdminOrStaffOrLibrarian]
-        elif self.action in ['retrieve_by_student', 'retrieve_by_history_and_student']:
+        elif self.action in ['retrieve_by_student', 'retrieve_by_history_and_student','view_history']:
             # For retrieving specific student history or history records by student
             permission_classes = [IsAdminOrStaffOrLibrarian]
         elif self.action in ['create','update','destroy']:
             permission_classes = [IsAdmin]
-        elif self.action in ['update_status','view_history']:
-            permission_classes=[IsAdminOrStaffOrLibrarian]
+        elif self.action in ['update_status']:
+            permission_classes=[IsAdmin|IsOfficeStaff]
         else:
             permission_classes = []
 
@@ -142,13 +142,6 @@ class LibraryHistoryViewSet(viewsets.ViewSet):
 
     @action(detail=True, methods=['patch'])
     def update_status(self, request, student_id=None, pk=None):
-        if request.user.role == 'librarian':
-            librarian_name = request.data.get('first_name')
-            librarian_id = request.data.get('id')
-        
-            if not librarian_name and not librarian_id:
-                return Response({'message': 'Librarian name and ID must be provided when updating status.'},
-                                status=status.HTTP_400_BAD_REQUEST)
             
         student = get_object_or_404(Student, student_id=student_id)
         library_history = get_object_or_404(LibraryHistory, pk=pk, student=student)
