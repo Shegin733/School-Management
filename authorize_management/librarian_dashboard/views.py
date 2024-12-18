@@ -32,7 +32,7 @@ class LibraryHistoryViewSet(viewsets.ViewSet):
         elif self.action in ['create','update','destroy']:
             permission_classes = [IsAdmin]
         elif self.action in ['update_status']:
-            permission_classes=[IsAdmin|IsOfficeStaff]
+            permission_classes=[IsAdmin]
         else:
             permission_classes = []
 
