@@ -1,15 +1,13 @@
 # School-Management
 
-
-
-
-
-</div>
-# School Management System with Role-Based Access Control
+## School Management System with Role-Based Access Control
 
 A robust **School Management System** built using **Django**, featuring **Role-Based Access Control (RBAC)**. This system enables multiple user roles—**Admin**, **Office Staff**, and **Librarian**—to manage students, fees, and library records efficiently.
 
----
+
+
+
+https://github.com/user-attachments/assets/08b0e216-fffe-424e-bedb-4e11ce6adcd2
 
 ## **Table of Contents**  
 1. [Project Overview](#project-overview)  
